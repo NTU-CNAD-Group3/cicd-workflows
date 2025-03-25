@@ -1,5 +1,8 @@
 name: SonarQube CI
 
+on:
+  workflow_call:
+
 jobs:
   sonarqube-ci:
     runs-on: ubuntu-latest
