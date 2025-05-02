@@ -1,0 +1,80 @@
+name: Build and Push Docker Image
+
+on:
+  workflow_call:
+    inputs:
+      service:
+        required: true
+        type: string
+
+env:
+  PROJECT_ID: cnad-group3
+  CLUSTER_NAME: cnad-prod-gke
+  CLUSTER_ZONE: asia-east1-a
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    output:
+      IMAGE_TAG: ${{ steps.tag.outputs.image_tag }}
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup google service account - ${{ matrix.env }}
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Configure Docker
+        run: |
+          gcloud info
+          gcloud auth configure-docker asia-east1-docker.pkg.dev
+
+      - name: Set up Image Tag
+        id: tag
+        run: |
+          echo "image_tag=${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
+
+      - name: Build Docker Image
+        run: |
+          docker build -t asia-east1-docker.pkg.dev/cnad-group3/cnad-prod-repo/${{ inputs.service }}:${GITHUB_SHA::8} .
+          docker push asia-east1-docker.pkg.dev/cnad-group3/cnad-prod-repo/${{ inputs.service }}:${GITHUB_SHA::8}
+
+      - name: Tag and Push Latest Image
+          docker tag asia-east1-docker.pkg.dev/cnad-group3/cnad-prod-repo/${{ inputs.service }}:${GITHUB_SHA::8} asia-east1-docker.pkg.dev/cnad-group3/cnad-prod-repo/${{ inputs.service }}:latest
+          docker push asia-east1-docker.pkg.dev/cnad-group3/cnad-prod-repo/${{ inputs.service }}:latest
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup google service account - ${{ matrix.env }}
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+
+      - name: Get GKE credentials
+        uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: ${{ env.CLUSTER_NAME }}
+          location: ${{ env.CLUSTER_ZONE }}
+
+      - name: Deploy to GKE
+        run: |
+          kubectl set image deployment/${{ inputs.service }} ${{ inputs.service }}=asia-east1-docker.pkg.dev/cnad-group3/cnad-prod-repo/${{ inputs.service }}:${{ needs.build.outputs.IMAGE_TAG }}
+          kubectl rollout status deployment/${{ inputs.service }}
+
+      - name: Verify Deployment
+        run: |
+          kubectl get pods -n ${{ inputs.service }} -o wide
+
+  
