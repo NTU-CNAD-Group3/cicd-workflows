@@ -71,8 +71,8 @@ jobs:
 
       - name: Deploy to GKE
         run: |
-          kubectl set image deployment/${{ inputs.service }} ${{ inputs.service }}=asia-east1-docker.pkg.dev/cnad-group3/cnad-prod-repo/${{ inputs.service }}:${{ needs.build.outputs.IMAGE_TAG }}
-          kubectl rollout status deployment/${{ inputs.service }}
+          kubectl set image deployment/${{ inputs.service }} ${{ inputs.service }}=asia-east1-docker.pkg.dev/cnad-group3/cnad-prod-repo/${{ inputs.service }}:${{ needs.build.outputs.IMAGE_TAG }} -n ${{ inputs.service }}
+          kubectl rollout status deployment/${{ inputs.service }} -n ${{ inputs.service }}
 
       - name: Verify Deployment
         run: |
