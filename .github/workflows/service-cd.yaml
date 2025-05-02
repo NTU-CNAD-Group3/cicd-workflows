@@ -47,6 +47,7 @@ jobs:
           docker push asia-east1-docker.pkg.dev/cnad-group3/cnad-prod-repo/${{ inputs.service }}:${GITHUB_SHA::8}
 
       - name: Tag and Push Latest Image
+        run: |
           docker tag asia-east1-docker.pkg.dev/cnad-group3/cnad-prod-repo/${{ inputs.service }}:${GITHUB_SHA::8} asia-east1-docker.pkg.dev/cnad-group3/cnad-prod-repo/${{ inputs.service }}:latest
           docker push asia-east1-docker.pkg.dev/cnad-group3/cnad-prod-repo/${{ inputs.service }}:latest
 
