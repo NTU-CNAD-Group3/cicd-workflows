@@ -15,7 +15,7 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-    output:
+    outputs:
       IMAGE_TAG: ${{ steps.tag.outputs.image_tag }}
     steps:
       - name: Checkout Source Code
